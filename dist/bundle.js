@@ -376,7 +376,7 @@ var app = (function (exports) {
     }
   }
 
-  let ws = {};
+  let ws = undefined;
 
   const cache = [];
   let open = false;
@@ -395,7 +395,7 @@ var app = (function (exports) {
 
       msg[0] = `${apiVersion}.${msg[0]}`;
 
-      return JSON.stringify(msg)
+      return JSON.stringify(msg);
     } catch (e) {
       error(e);
     }
@@ -403,13 +403,13 @@ var app = (function (exports) {
 
   const parse = msg => {
     if (!isString(msg)) {
-      return msg
+      return msg;
     }
 
     try {
-      return JSON.parse(msg)
+      return JSON.parse(msg);
     } catch (e) {
-      return msg
+      return msg;
     }
   };
 
@@ -417,7 +417,7 @@ var app = (function (exports) {
     onmessage: e => {
       if (e.data === "Unknown Action") {
         error("Unknown Action", e);
-        return
+        return;
       }
 
       const [path, data] = parse(e.data);
@@ -428,14 +428,14 @@ var app = (function (exports) {
         const sub = action[fnName];
         if (isFunction(sub)) {
           action = sub;
-          return
+          return;
         } else {
           action = actions[key];
         }
       });
 
       if (isFunction(action)) {
-        return action(data)
+        return action(data);
       }
     },
     open: () => {
@@ -459,9 +459,10 @@ var app = (function (exports) {
     apiVersion = options.apiVersion || "v0";
     error = options.error || error;
 
-    ws = new WebSocket(`${protocol}://${host}:${port}`);
-
-    open = false;
+    if (!ws) {
+      ws = new WebSocket(`${protocol}://${host}:${port}`);
+      open = false;
+    }
 
     const react = reactions(actions);
 
@@ -469,10 +470,10 @@ var app = (function (exports) {
     ws.onclose = react.close;
     ws.onmessage = react.onmessage;
 
-    return ws
+    return ws;
   };
 
-  const send = msg => (open ? ws.send(stringify(msg)) : cache.push(msg));
+  const send = msg => open ? ws.send(stringify(msg)) : cache.push(msg);
 
   const map = (actions = {}, remote = {}, parent = null) => {
     Object.keys(remote).forEach(name => {
@@ -488,17 +489,17 @@ var app = (function (exports) {
           send(msg);
         };
 
-        return
+        return;
       }
 
       if (typeof action === "object") {
         const remoteActions = map({}, action, name);
         actions[name] = Object.assign({}, actions[name], remoteActions);
-        return
+        return;
       }
     });
 
-    return actions
+    return actions;
   };
 
   const connect$1 = connect;

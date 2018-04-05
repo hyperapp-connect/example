@@ -32,7 +32,7 @@ function h(name, attributes) {
       }
 }
 
-let ws = {};
+let ws = undefined;
 
 const cache = [];
 let open = false;
