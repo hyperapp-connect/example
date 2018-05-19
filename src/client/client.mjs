@@ -21,10 +21,10 @@ export const local = {
 // and then merged into the actions
 export const remote = {
   counter: {
-    down: res => state => console.log({res}) || ({ value: state.value + res }),
-    down10: res => state => ({ value: state.value + res }),
-    up: res => state => ({ value: state.value + res }),
-    up10: res => state => ({ value: state.value + res }),
+    down: ({ data }) => ({ value }) => ({ value: value + data }),
+    down10: ({ data }) => ({ value }) => ({ value: value + data }),
+    up: ({ data }) => ({ value }) => ({ value: value + data }),
+    up10: ({ data }) => ({ value }) => ({ value: value + data }),
   },
 }
 

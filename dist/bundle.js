@@ -152,8 +152,7 @@ var app = (function (exports) {
     }
 
     function updateAttribute(element, name, value, oldValue, isSvg) {
-      if (name === "key") {
-      } else if (name === "style") {
+      if (name === "key") ; else if (name === "style") {
         for (var i in clone(oldValue, value)) {
           var style = value == null || value[i] == null ? "" : value[i];
           if (i[0] === "-") {
@@ -283,8 +282,7 @@ var app = (function (exports) {
     }
 
     function patch(parent, element, oldNode, node, isSvg) {
-      if (node === oldNode) {
-      } else if (oldNode == null || oldNode.nodeName !== node.nodeName) {
+      if (node === oldNode) ; else if (oldNode == null || oldNode.nodeName !== node.nodeName) {
         var newElement = createElement(node, isSvg);
         parent.insertBefore(newElement, element);
 
@@ -395,7 +393,7 @@ var app = (function (exports) {
   const stringify = msg => {
     try {
       if (isString(msg)) {
-        return msg
+        msg = JSON.parse(msg);
       }
 
       return JSON.stringify(msg)
@@ -420,7 +418,6 @@ var app = (function (exports) {
       }
 
       const [path, data] = parse(e.data);
-
       let action = actions;
 
       path.split('.').forEach(key => {
@@ -464,8 +461,10 @@ var app = (function (exports) {
     open = false;
     try {
       ws = new WebSocket(url);
+      actions.socketServerConnect(true);
     } catch (e) {
-      // implement client error logging actions
+      // implement client error logging actions if websocket can not open
+      console.error('websocket reconnect failed');
     }
 
     ws.onopen = reactions.open;
@@ -473,6 +472,7 @@ var app = (function (exports) {
 
     ws.onclose = () => {
       open = false;
+      actions.socketServerConnect(false);
       retryConnect(url, actions);
     };
   };
@@ -507,12 +507,17 @@ var app = (function (exports) {
 
       if (typeof action === 'function') {
         actions[name + '_done'] = (res) => (state, actions) => {
-          if (!res.ok && typeof res === 'undefined') {
+          if (!res.ok || !res.hasOwnProperty('data')) {
+            if (!res.errors && !res.error) {
+              res = {
+                error: 'Unknown Error',
+                res,
+              };
+            }
             return {
               errors: res.errors || [res.error],
             }
           }
-
           return action(res)(state, actions)
         };
 
@@ -533,6 +538,10 @@ var app = (function (exports) {
         return
       }
     });
+
+    if (!actions.socketServerConnect) {
+      actions.socketServerConnect = t => () => ({ connected: t });
+    }
 
     return actions
   };
@@ -564,24 +573,32 @@ var app = (function (exports) {
     // and then merged into the actions
   };var remote = {
     counter: {
-      down: function down(res) {
-        return function (state$$1) {
-          return console.log({ res: res }) || { value: state$$1.value + res };
+      down: function down(_ref2) {
+        var data = _ref2.data;
+        return function (_ref3) {
+          var value = _ref3.value;
+          return { value: value + data };
         };
       },
-      down10: function down10(res) {
-        return function (state$$1) {
-          return { value: state$$1.value + res };
+      down10: function down10(_ref4) {
+        var data = _ref4.data;
+        return function (_ref5) {
+          var value = _ref5.value;
+          return { value: value + data };
         };
       },
-      up: function up(res) {
-        return function (state$$1) {
-          return { value: state$$1.value + res };
+      up: function up(_ref6) {
+        var data = _ref6.data;
+        return function (_ref7) {
+          var value = _ref7.value;
+          return { value: value + data };
         };
       },
-      up10: function up10(res) {
-        return function (state$$1) {
-          return { value: state$$1.value + res };
+      up10: function up10(_ref8) {
+        var data = _ref8.data;
+        return function (_ref9) {
+          var value = _ref9.value;
+          return { value: value + data };
         };
       }
     }

@@ -72,6 +72,13 @@ const socket = args => {
           const res = [name.replace('v0.', '')];
 
           if (data) {
+            if (typeof data === 'number' || typeof data === 'string') {
+              data = {
+                data,
+                ok: true,
+              };
+            }
+
             res.push(data);
           }
 
@@ -253,8 +260,7 @@ function app(state, actions, view, container) {
   }
 
   function updateAttribute(element, name, value, oldValue, isSvg) {
-    if (name === "key") {
-    } else if (name === "style") {
+    if (name === "key") ; else if (name === "style") {
       for (var i in clone(oldValue, value)) {
         var style = value == null || value[i] == null ? "" : value[i];
         if (i[0] === "-") {
@@ -384,8 +390,7 @@ function app(state, actions, view, container) {
   }
 
   function patch(parent, element, oldNode, node, isSvg) {
-    if (node === oldNode) {
-    } else if (oldNode == null || oldNode.nodeName !== node.nodeName) {
+    if (node === oldNode) ; else if (oldNode == null || oldNode.nodeName !== node.nodeName) {
       var newElement = createElement(node, isSvg);
       parent.insertBefore(newElement, element);
 
@@ -822,7 +827,7 @@ const isString = o => typeof o === 'string';
 const stringify = msg => {
   try {
     if (isString(msg)) {
-      return msg
+      msg = JSON.parse(msg);
     }
 
     return JSON.stringify(msg)
@@ -841,7 +846,6 @@ const send = msg => {
       msg[0] = `${apiVersion}.${msg[0]}`;
     }
     ws$1.send(stringify(msg));
-  } else {
   }
 };
 
@@ -852,12 +856,17 @@ const mapActions$1 = (actions = {}, remote = {}, parent = null) => {
 
     if (typeof action === 'function') {
       actions[name + '_done'] = (res) => (state, actions) => {
-        if (!res.ok && typeof res === 'undefined') {
+        if (!res.ok || !res.hasOwnProperty('data')) {
+          if (!res.errors && !res.error) {
+            res = {
+              error: 'Unknown Error',
+              res,
+            };
+          }
           return {
             errors: res.errors || [res.error],
           }
         }
-
         return action(res)(state, actions)
       };
 
@@ -878,6 +887,10 @@ const mapActions$1 = (actions = {}, remote = {}, parent = null) => {
       return
     }
   });
+
+  if (!actions.socketServerConnect) {
+    actions.socketServerConnect = t => () => ({ connected: t });
+  }
 
   return actions
 };
@@ -902,10 +915,10 @@ const local = {
 // and then merged into the actions
 const remote = {
   counter: {
-    down: res => state$$1 => console.log({res}) || ({ value: state$$1.value + res }),
-    down10: res => state$$1 => ({ value: state$$1.value + res }),
-    up: res => state$$1 => ({ value: state$$1.value + res }),
-    up10: res => state$$1 => ({ value: state$$1.value + res }),
+    down: ({ data }) => ({ value }) => ({ value: value + data }),
+    down10: ({ data }) => ({ value }) => ({ value: value + data }),
+    up: ({ data }) => ({ value }) => ({ value: value + data }),
+    up10: ({ data }) => ({ value }) => ({ value: value + data }),
   },
 };
 

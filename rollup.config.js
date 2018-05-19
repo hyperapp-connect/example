@@ -1,9 +1,9 @@
-const jsx = require('rollup-plugin-jsx')
-const resolve = require('rollup-plugin-node-resolve')
-const babel = require('rollup-plugin-babel')
-const uglify = require('rollup-plugin-uglify')
+import jsx from 'rollup-plugin-jsx'
+import resolve from 'rollup-plugin-node-resolve'
+import babel from 'rollup-plugin-babel'
+import { uglify } from 'rollup-plugin-uglify'
 
-const path = require('path')
+import path from 'path'
 
 const env = process.env.NODE_ENV || 'development'
 const prod = env === 'production'
@@ -52,7 +52,7 @@ const resolver = {
 
 module.exports = [
 {
-  input: 'src/client/index.js',
+  input: 'src/client/index.mjs',
   output: {
     file: 'dist/bundle.js',
     name: 'app',
@@ -64,10 +64,20 @@ module.exports = [
     // enable jsx in hyperapp
     jsx({ factory: 'h' }),
     // build the bundle using babel
+    resolve(resolver),
     babel({
       exclude: 'node_modules/**',
+      presets: [
+        [
+          "env",
+          {
+            modules: false,
+            targets: '> 0.25%',
+            forceAllTransforms: true,
+          },
+        ],
+      ]
     }),
-    resolve(resolver),
     // uglify the javascript in production
     prod && uglify(),
   ],

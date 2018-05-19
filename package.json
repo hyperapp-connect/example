@@ -8,35 +8,26 @@
     "dev": "NODE_ENV=development rollup -c -w",
     "clean": "rm -rf public/js/*",
     "build": "NODE_ENV=development rollup -c",
-    "format": "prettier --semi false --single-quote --trailing-comma es5 --write ./src/**/*.js",
-    "server": "npm run build && nodemon -w src/server -- dist/server.js"
+    "format": "f -w",
+    "server": "npm run build && nodemon -w src -w dist -w rollup.config.js -- dist/server.js"
   },
   "author": "Jascha Ehrenreich <jascha@jaeh.at>",
   "license": "MIT",
   "devDependencies": {
-    "babel-core": "6.26.0",
-    "babel-preset-env": "1.6.1",
-    "nodemon": "1.17.3",
-    "prettier": "1.11.1",
-    "rollup": "0.57.1",
-    "rollup-plugin-babel": "3.0.3",
+    "@magic/test": "github:magic/test#mjs",
+    "babel-core": "6.26.3",
+    "babel-preset-env": "1.7.0",
+    "nodemon": "1.17.4",
+    "prettier": "1.12.1",
+    "rollup": "0.59.1",
+    "rollup-plugin-babel": "3.0.4",
     "rollup-plugin-jsx": "1.0.3",
     "rollup-plugin-node-resolve": "3.3.0",
-    "rollup-plugin-uglify": "3.0.0"
+    "rollup-plugin-uglify": "4.0.0"
   },
   "dependencies": {
     "@hypercnt/client": "github:hypercnt/client",
     "@hypercnt/server": "github:hypercnt/server",
     "hyperapp": "1.2.5"
-  },
-  "babel": {
-    "presets": [
-      [
-        "env",
-        {
-          "modules": false
-        }
-      ]
-    ]
   }
 }
