@@ -25,9 +25,9 @@
     "rollup-plugin-uglify": "3.0.0"
   },
   "dependencies": {
-    "hyperapp": "1.2.5",
-    "@hyperconnect/client": "github:hyperapp-connect/client",
-    "@hyperconnect/server": "github:hyperapp-connect/server"
+    "@hypercnt/client": "github:hypercnt/client",
+    "@hypercnt/server": "github:hypercnt/server",
+    "hyperapp": "1.2.5"
   },
   "babel": {
     "presets": [

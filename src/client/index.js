@@ -1,5 +1,5 @@
 import { app } from 'hyperapp'
-import { connect } from '@hyperconnect/client'
+import { connect } from '@hypercnt/client'
 
 import { state, actions, view } from './client'
 

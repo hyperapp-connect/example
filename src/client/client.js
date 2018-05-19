@@ -1,5 +1,5 @@
 import { h } from 'hyperapp'
-import { mapActions } from '@hyperconnect/client'
+import { mapActions } from '@hypercnt/client'
 
 // just a usual hyperapp state
 export const state = {
@@ -13,7 +13,7 @@ export const state = {
 export const local = {
   local: val => () => ({ input: val }),
   counter: {
-    up20: val => state => ({ value: state.value + 20 }),
+    up20: () => ({ value }) => ({ value: value + 20 }),
   },
 }
 
@@ -21,10 +21,10 @@ export const local = {
 // and then merged into the actions
 export const remote = {
   counter: {
-    down: res => () => res,
-    down10: res => () => res,
-    up: res => () => res,
-    up10: res => () => res,
+    down: res => state => console.log({res}) || ({ value: state.value + res }),
+    down10: res => state => ({ value: state.value + res }),
+    up: res => state => ({ value: state.value + res }),
+    up10: res => state => ({ value: state.value + res }),
   },
 }
 
@@ -38,14 +38,20 @@ export const view = (state, actions) => (
 
     <div>{JSON.stringify(state)}</div>
 
-    <button onclick={() => actions.counter.up()}>+</button>
-    <button onclick={() => actions.counter.up10()}>+10</button>
-    <button onclick={() => actions.counter.up20()}>+20</button>
+    <button onclick={actions.counter.up}>+</button>
+    <button onclick={actions.counter.up10}>+10</button>
+    <button onclick={actions.counter.up20}>+20</button>
 
-    <button onclick={() => actions.counter.down()}>-</button>
-    <button onclick={() => actions.counter.down10()}>-10</button>
+    <button onclick={actions.counter.down}>-</button>
+    <button onclick={actions.counter.down10}>-10</button>
 
     <input type="text" onkeyup={e => actions.local(e.target.value)} />
     <span>text, no server roundtrip: {state.input}</span>
   </div>
 )
+
+export default {
+  state,
+  actions,
+  view,
+}

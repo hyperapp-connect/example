@@ -376,66 +376,65 @@ var app = (function (exports) {
     }
   }
 
-  let ws = undefined;
+  const error = (...msg) => console.error(...msg);
 
-  const cache = [];
-  let open = false;
-  let apiVersion = "v0";
+  const isString = o => typeof o === 'string';
 
-  let error = (...msg) => console.error(...msg);
+  const parse = msg => {
+    if (!isString(msg)) {
+      return msg
+    }
 
-  const isString = o => typeof o === "string";
-  const isFunction = o => typeof o === "function";
+    try {
+      return JSON.parse(msg)
+    } catch (e) {
+      return msg
+    }
+  };
 
   const stringify = msg => {
     try {
       if (isString(msg)) {
-        msg = JSON.parse(msg);
+        return msg
       }
 
-      msg[0] = `${apiVersion}.${msg[0]}`;
-
-      return JSON.stringify(msg);
+      return JSON.stringify(msg)
     } catch (e) {
       error(e);
     }
   };
 
-  const parse = msg => {
-    if (!isString(msg)) {
-      return msg;
-    }
+  let ws = undefined;
 
-    try {
-      return JSON.parse(msg);
-    } catch (e) {
-      return msg;
-    }
-  };
+  const cache = [];
+  let open = false;
+  let apiVersion = 'v0';
 
-  const reactions = actions => ({
-    onmessage: e => {
-      if (e.data === "Unknown Action") {
-        error("Unknown Action", e);
-        return;
+  const isFunction = o => typeof o === 'function';
+
+  const reactions = {
+    onmessage: actions => e => {
+      if (e.data === 'Unknown Action') {
+        error('Unknown Action', e);
+        return
       }
 
       const [path, data] = parse(e.data);
+
       let action = actions;
 
-      path.split(".").forEach(key => {
+      path.split('.').forEach(key => {
         const fnName = `${key}_done`;
         const sub = action[fnName];
         if (isFunction(sub)) {
           action = sub;
-          return;
         } else {
-          action = actions[key];
+          action = action[key];
         }
       });
 
       if (isFunction(action)) {
-        return action(data);
+        return action(data)
       }
     },
     open: () => {
@@ -446,67 +445,100 @@ var app = (function (exports) {
         ws.send(stringify(msg));
       }
     },
-    close: () => {
-      open = false;
+  };
+
+  const retryConnect = (url, actions, wait = 1000) =>
+    new Promise(resolve => {
+      if (open && ws) {
+        return ws
+      }
+
+      wait += 500;
+      setTimeout(() => {
+        createSocket(url, actions);
+        resolve();
+      }, wait);
+    });
+
+  const createSocket = (url, actions) => {
+    open = false;
+    try {
+      ws = new WebSocket(url);
+    } catch (e) {
+      // implement client error logging actions
     }
-  });
+
+    ws.onopen = reactions.open;
+    ws.onmessage = reactions.onmessage(actions);
+
+    ws.onclose = () => {
+      open = false;
+      retryConnect(url, actions);
+    };
+  };
 
   const connect = (actions, options = {}) => {
     const host = options.host || location.hostname;
     const port = options.port || location.port;
-    const protocol = options.protocol || "ws";
+    const protocol = options.protocol || 'ws';
 
-    apiVersion = options.apiVersion || "v0";
-    error = options.error || error;
+    apiVersion = options.apiVersion || apiVersion || 'v0';
 
-    if (!ws) {
-      ws = new WebSocket(`${protocol}://${host}:${port}`);
-      open = false;
-    }
+    createSocket(`${protocol}://${host}:${port}`, actions);
 
-    const react = reactions(actions);
-
-    ws.onopen = react.open;
-    ws.onclose = react.close;
-    ws.onmessage = react.onmessage;
-
-    return ws;
+    return ws
   };
 
-  const send = msg => open ? ws.send(stringify(msg)) : cache.push(msg);
+  const send = msg => {
+    if (open && ws) {
+      if (typeof msg[0] === 'string') {
+        msg[0] = `${apiVersion}.${msg[0]}`;
+      }
+      ws.send(stringify(msg));
+    } else {
+      cache.push(msg);
+    }
+  };
 
-  const map = (actions = {}, remote = {}, parent = null) => {
+  const mapActions = (actions = {}, remote = {}, parent = null) => {
     Object.keys(remote).forEach(name => {
       const action = remote[name];
+      const key = parent ? `${parent}.${name}` : name;
 
-      if (typeof action === "function") {
-        actions[name + "_done"] = action;
+      if (typeof action === 'function') {
+        actions[name + '_done'] = (res) => (state, actions) => {
+          if (!res.ok && typeof res === 'undefined') {
+            return {
+              errors: res.errors || [res.error],
+            }
+          }
 
-        actions[name] = (state, actions) => data => {
-          const key = parent ? `${parent}.${name}` : name;
-          const msg = [key, data].filter(e => !!e);
+          return action(res)(state, actions)
+        };
 
+        actions[name] = data => (state = {}) => {
+          if (state.jwt) {
+            data.jwt = state.jwt;
+          }
+
+          const msg = [key, data];
           send(msg);
         };
 
-        return;
+        return
       }
 
-      if (typeof action === "object") {
-        const remoteActions = map({}, action, name);
-        actions[name] = Object.assign({}, actions[name], remoteActions);
-        return;
+      if (typeof action === 'object') {
+        actions[name] = mapActions(actions[name], action, key);
+        return
       }
     });
 
-    return actions;
+    return actions
   };
 
-  const connect$1 = connect;
-  const mapActions = map;
-
   // just a usual hyperapp state
-  var state = {
+  var state$1 = {
     counter: {
       value: 0
     }
@@ -520,9 +552,10 @@ var app = (function (exports) {
       };
     },
     counter: {
-      up20: function up20(val) {
-        return function (state) {
-          return { value: state.value + 20 };
+      up20: function up20() {
+        return function (_ref) {
+          var value = _ref.value;
+          return { value: value + 20 };
         };
       }
     }
@@ -532,48 +565,38 @@ var app = (function (exports) {
   };var remote = {
     counter: {
       down: function down(res) {
-        return function () {
-          return res;
+        return function (state$$1) {
+          return console.log({ res: res }) || { value: state$$1.value + res };
         };
       },
       down10: function down10(res) {
-        return function () {
-          return res;
+        return function (state$$1) {
+          return { value: state$$1.value + res };
         };
       },
       up: function up(res) {
-        return function () {
-          return res;
+        return function (state$$1) {
+          return { value: state$$1.value + res };
         };
       },
       up10: function up10(res) {
-        return function () {
-          return res;
+        return function (state$$1) {
+          return { value: state$$1.value + res };
         };
       }
     }
 
     // create the actions
-  };var actions = mapActions(local, remote);
+  };var actions$1 = mapActions(local, remote);
 
   // just a usual hyperapp view
-  var view = function view(state, actions) {
-    return h('div', null, [h('h1', null, [state.counter.value]), h('div', null, [JSON.stringify(state)]), h('button', { onclick: function onclick() {
-        return actions.counter.up();
-      } }, ["+"]), h('button', { onclick: function onclick() {
-        return actions.counter.up10();
-      } }, ["+10"]), h('button', { onclick: function onclick() {
-        return actions.counter.up20();
-      } }, ["+20"]), h('button', { onclick: function onclick() {
-        return actions.counter.down();
-      } }, ["-"]), h('button', { onclick: function onclick() {
-        return actions.counter.down10();
-      } }, ["-10"]), h('input', { type: "text", onkeyup: function onkeyup(e) {
-        return actions.local(e.target.value);
-      } }), h('span', null, ["text, no server roundtrip: ", state.input])]);
+  var view = function view(state$$1, actions$$1) {
+    return h('div', null, [h('h1', null, [state$$1.counter.value]), h('div', null, [JSON.stringify(state$$1)]), h('button', { onclick: actions$$1.counter.up }, ["+"]), h('button', { onclick: actions$$1.counter.up10 }, ["+10"]), h('button', { onclick: actions$$1.counter.up20 }, ["+20"]), h('button', { onclick: actions$$1.counter.down }, ["-"]), h('button', { onclick: actions$$1.counter.down10 }, ["-10"]), h('input', { type: "text", onkeyup: function onkeyup(e) {
+        return actions$$1.local(e.target.value);
+      } }), h('span', null, ["text, no server roundtrip: ", state$$1.input])]);
   };
 
-  var connected = app(state, actions, view, document.body);
+  var connected = app(state$1, actions$1, view, document.body);
 
   // socket server connection options
   var options = {
@@ -582,7 +605,7 @@ var app = (function (exports) {
     port: 3001
 
     // wires the app and mounts it.
-  };var ws$1 = connect$1(connected, options);
+  };var ws$1 = connect(connected, options);
 
   exports.connected = connected;
   exports.ws = ws$1;
